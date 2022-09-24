@@ -1,0 +1,7 @@
+*.zip
+*=
+*.backup
+*.tfstate
+*.tfplan
+.terraform
+.tfstate.backup
