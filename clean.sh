@@ -4,5 +4,6 @@
 rm -fr *.tfstate
 rm -fr *.tfstate.*
 rm -fr *.tfplan
-rm -fr *.zip
-rm -fr Dockerrun.aws.json=
+rm -fr .terraform.lock.hcl
+rm -fr .terraform
+# rm -fr *.zip

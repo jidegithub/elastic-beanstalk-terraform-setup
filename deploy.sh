@@ -14,6 +14,13 @@
 #
 # usage: ./deploy.sh name-of-application staging us-east-1 f0478bd7c2f584b41a49405c91a439ce9d944657
 
+#recreate a new Dockerrun.aws.json file so that the variables will remain unchanged after replacing them
+# function createNewDockerRunJsonFile {
+#   cp Dockerrun.aws.json Dockerrun.aws.json1
+# }
+
+# createNewDockerRunJsonFile
+
 set -e
 start=`date +%s`
 
@@ -66,10 +73,10 @@ fi
 
 EB_BUCKET=$NAME-deployments
 ENV=$NAME-$STAGE
-VERSION=$STAGE-$SHA1-$(date +%s)
-ZIP=$VERSION.zip
+VERSIONX=$STAGE-$SHA1-$(openssl rand -base64 12)
+ZIP=$VERSIONX.zip
 
-echo Deploying $NAME to environment $STAGE, region: $REGION, version: $VERSION, bucket: $EB_BUCKET
+echo Deploying $NAME to environment $STAGE, region: $REGION, version: $VERSIONX, bucket: $EB_BUCKET
 
 aws configure set default.region $REGION
 aws configure set default.output json
@@ -78,11 +85,11 @@ aws configure set default.output json
 aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
 
 # Build the image
-docker build -t $NAME:$VERSION /home/jide/Desktop/'progressively ongoing'/viable/Toga-Mobile
+docker build -t $NAME:$VERSIONX ~/Desktop/'progressively-ongoing'/viable/Toga-Mobile
 # Tag it
-docker tag $NAME:$VERSION $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$NAME:$VERSION
+docker tag $NAME:$VERSIONX $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$NAME:$VERSIONX
 # Push to AWS Elastic Container Registry
-docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$NAME:$VERSION
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$NAME:$VERSIONX
 
 # Replace the <AWS_ACCOUNT_ID> with your ID
 sed -i='' "s/<AWS_ACCOUNT_ID>/$AWS_ACCOUNT_ID/" Dockerrun.aws.json
@@ -91,7 +98,7 @@ sed -i='' "s/<NAME>/$NAME/" Dockerrun.aws.json
 # Replace the <REGION> with the selected region
 sed -i='' "s/<REGION>/$REGION/" Dockerrun.aws.json
 # Replace the <TAG> with the your version number
-sed -i='' "s/<TAG>/$VERSION/" Dockerrun.aws.json
+sed -i='' "s/<VERSION>/$VERSIONX/" Dockerrun.aws.json
 
 # Zip up the Dockerrun file
 zip -r $ZIP Dockerrun.aws.json
@@ -100,10 +107,10 @@ zip -r $ZIP Dockerrun.aws.json
 aws s3 cp $ZIP s3://$EB_BUCKET/$ZIP
 
 # Create a new application version with the zipped up Dockerrun file
-aws elasticbeanstalk create-application-version --application-name $NAME --version-label $VERSION --source-bundle S3Bucket=$EB_BUCKET,S3Key=$ZIP
+aws elasticbeanstalk create-application-version --application-name $NAME --version-label $VERSIONX --source-bundle S3Bucket=$EB_BUCKET,S3Key=$ZIP
 
 # Update the environment to use the new application version
-aws elasticbeanstalk update-environment --environment-name $ENV --version-label $VERSION
+aws elasticbeanstalk update-environment --environment-name $ENV --version-label $VERSIONX
 
 end=`date +%s`
 

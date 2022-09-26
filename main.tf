@@ -12,11 +12,22 @@ provider "aws" {
 # S3 Bucket for storing Elastic Beanstalk task definitions
 resource "aws_s3_bucket" "ng_beanstalk_deploys" {
   bucket = "${var.application_name}-deployments"
+  force_destroy = true
+  # lifecycle {
+  #   # Any Terraform plan that includes a destroy of this resource will
+  #   # result in an error message.
+  #   prevent_destroy = true
+  # }
+  tags {
+    Name        = "ebs-${var.application_name}"
+    Environment = "${var.application_name}"
+  }
 }
 
 # Elastic Container Repository for Docker images
 resource "aws_ecr_repository" "ng_container_repository" {
   name = "${var.application_name}"
+  force_delete = true
 }
 
 #iam ec2 instance service role for beanstalk instance
@@ -73,7 +84,8 @@ resource "aws_iam_role_policy" "ng_beanstalk_ec2_policy" {
         "ecr:ListImages",
         "ecr:DescribeImages",
         "ecr:BatchGetImage",
-        "s3:*"
+        "s3:*",
+        "elasticbeanstalk:PutInstanceStatistics"
       ],
       "Effect": "Allow",
       "Resource": "*"
